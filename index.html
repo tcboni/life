@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game of Life</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #canvas:active {
+            cursor: grabbing;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #444;
+            padding: 15px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .controls::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .controls .corner-bl {
+            position: absolute;
+            bottom: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .controls .corner-br {
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .controls h3 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        button.active {
+            background: #4a9eff;
+            border-color: #6bb0ff;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .slider-group label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100px;
+        }
+
+        .number-control {
+            display: flex;
+            align-items: center;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        .number-control button {
+            padding: 4px 8px;
+            background: #333;
+            border: none;
+            color: #fff;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 28px;
+            height: 24px;
+            position: relative;
+        }
+
+        .number-control button:hover {
+            background: #333;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            font-size: 11px;
+            white-space: nowrap;
+            border-radius: 3px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10000;
+        }
+
+        .number-control button:hover .tooltip {
+            opacity: 1;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #444;
+            font-size: 12px;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .toast::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .toast::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .toast .corner-bl {
+            position: absolute;
+            bottom: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .toast .corner-br {
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast .toast-text {
+            color: #aaa;
+        }
+
+        .toast .toast-highlight {
+            color: #fff;
+        }
+
+        .number-control .number-display {
+            width: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #fff;
+            padding: 0 4px;
+        }
+
+        .minimap {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #444;
+            padding: 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+
+        .minimap::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 5px;
+            height: 5px;
+            border-top: 2px solid #fff;
+            border-left: 2px solid #fff;
+        }
+
+        .minimap::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 5px;
+            height: 5px;
+            border-top: 2px solid #fff;
+            border-right: 2px solid #fff;
+        }
+
+        .minimap .corner-bl {
+            position: absolute;
+            bottom: -2px;
+            left: -2px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 2px solid #fff;
+            border-left: 2px solid #fff;
+        }
+
+        .minimap .corner-br {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 2px solid #fff;
+            border-right: 2px solid #fff;
+        }
+
+        .minimap h3 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+        }
+
+        .rules-panel h3 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+        }
+
+        #minimapCanvas {
+            border: 1px solid #555;
+            display: block;
+        }
+
+        .rules-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #444;
+            padding: 15px;
+            z-index: 1000;
+            min-width: 350px;
+            backdrop-filter: blur(10px);
+        }
+
+        .rules-panel .corner-tl {
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .rules-panel .corner-tr {
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-top: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .rules-panel .corner-bl {
+            position: absolute;
+            bottom: -1px;
+            left: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-left: 1px solid #fff;
+        }
+
+        .rules-panel .corner-br {
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 5px;
+            height: 5px;
+            border-bottom: 1px solid #fff;
+            border-right: 1px solid #fff;
+        }
+
+        .rules-category {
+            margin-bottom: 20px;
+        }
+
+        .rules-category h4 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #4a9eff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #liveRules,
+        #deadRules {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+
+        select,
+        input[type="number"],
+        input[type="text"] {
+            padding: 2px 4px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #666;
+            color: #fff;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        select:focus,
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            border-bottom-color: #4a9eff;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 2px center;
+            padding-right: 20px;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            width: 40px;
+            text-align: left;
+            padding: 2px 6px;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .add-rule-icon {
+            background: transparent;
+            border: none;
+            color: #4a9eff;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            width: auto;
+            height: auto;
+        }
+
+        .add-rule-icon:hover {
+            color: #6bb0ff;
+        }
+
+        .remove-rule {
+            background: transparent;
+            border: none;
+            color: #c33;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0;
+            margin-left: auto;
+            line-height: 1;
+            width: auto;
+            height: auto;
+        }
+
+        .remove-rule:hover {
+            color: #f55;
+        }
+
+
+        .presets-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+
+        .presets-section h4 {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .presets-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .presets-controls input[type="text"] {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .preset-list {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .preset-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .preset-item-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .preset-item button {
+            padding: 2px 6px;
+            font-size: 10px;
+        }
+
+        .preset-item .delete-preset {
+            background: transparent;
+            border: none;
+            color: #c33;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0;
+            line-height: 1;
+            width: auto;
+            height: auto;
+        }
+
+        .preset-item .delete-preset:hover {
+            color: #f55;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+        <span class="corner-bl"></span>
+        <span class="corner-br"></span>
+        <h3>Controls</h3>
+        <div class="controls-row">
+            <div class="button-group">
+                <button id="playPause" title="Play/Pause">▶</button>
+                <button id="step" title="Step">⏭</button>
+            </div>
+            <div class="slider-group">
+                <label>Speed</label>
+                <div class="number-control">
+                    <button onclick="adjustSpeed(false)">
+                        <span class="tooltip">Halve speed</span>-
+                    </button>
+                    <span class="number-display" id="speedValue">1x</span>
+                    <button onclick="adjustSpeed(true)">
+                        <span class="tooltip">Double speed</span>+
+                    </button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Zoom</label>
+                <div class="number-control">
+                    <button onclick="adjustZoom(false)">
+                        <span class="tooltip">Halve zoom</span>-
+                    </button>
+                    <span class="number-display" id="zoomValue">100%</span>
+                    <button onclick="adjustZoom(true)">
+                        <span class="tooltip">Double zoom</span>+
+                    </button>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="clear">🗑</button>
+                <button id="saveBoard">💾</button>
+                <button id="loadBoard">📂</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="minimap">
+        <span class="corner-bl"></span>
+        <span class="corner-br"></span>
+        <h3>Minimap</h3>
+        <canvas id="minimapCanvas" width="200" height="200"></canvas>
+    </div>
+
+    <div class="rules-panel">
+        <span class="corner-tl"></span>
+        <span class="corner-tr"></span>
+        <span class="corner-bl"></span>
+        <span class="corner-br"></span>
+        <h3>Rules</h3>
+        <div class="rules-category">
+            <h4>
+                Live Cells
+                <button class="add-rule-icon" onclick="addRule('live')" title="Add rule">+</button>
+            </h4>
+            <div id="liveRules"></div>
+        </div>
+        <div class="rules-category">
+            <h4>
+                Dead Cells
+                <button class="add-rule-icon" onclick="addRule('dead')" title="Add rule">+</button>
+            </h4>
+            <div id="deadRules"></div>
+        </div>
+        <div class="presets-section">
+            <h4>
+                Presets
+                <button class="add-rule-icon" onclick="addNewPreset()">+</button>
+            </h4>
+            <div class="preset-list" id="presetList"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let cells = new Map();
+        let cellAges = new Map(); // Track how many cycles each cell has been alive
+        let cellUnchangedCycles = new Map(); // Track cycles without state change
+        let previousCells = new Map(); // Previous state for unchanged tracking
+        let isPlaying = false;
+        let speed = 1;
+        let cellSize = 10;
+        let cameraX = 0;
+        let cameraY = 0;
+        let zoom = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let animationFrame = 0;
+        let lastUpdate = 0;
+
+        // Rules: { ruleType: 'neighbor_count'|'cycles_unchanged'|'age'|'density', condition: 'fewer'|'equal'|'more', count: number }
+        // Note: result is implicit - live cell rules make them die, dead cell rules make them live
+        let rules = {
+            live: [
+                { ruleType: 'neighbor_count', condition: 'fewer', count: 2 },
+                { ruleType: 'neighbor_count', condition: 'more', count: 3 }
+            ],
+            dead: [
+                { ruleType: 'neighbor_count', condition: 'equal', count: 3 }
+            ]
+        };
+
+        // Audio context for sound
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTickSound() {
+            // More mechanical clock-like tick sound
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Higher frequency, square wave for more mechanical sound
+            oscillator.frequency.value = 1200;
+            oscillator.type = 'square';
+
+            // Sharp attack and quick decay for tick sound
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+        }
+
+        // Cell animations: Map of "x,y" -> { type: 'spawn'|'death', frame: number }
+        let cellAnimations = new Map();
+        const ANIMATION_DURATION = 10;
+
+        function setCell(x, y, alive) {
+            const key = `${x},${y}`;
+            if (alive) {
+                cells.set(key, true);
+                cellAnimations.set(key, { type: 'spawn', frame: 0 });
+            } else {
+                if (cells.has(key)) {
+                    cellAnimations.set(key, { type: 'death', frame: 0 });
+                }
+                cells.delete(key);
+            }
+        }
+
+        function getCell(x, y) {
+            return cells.has(`${x},${y}`);
+        }
+
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    if (getCell(x + dx, y + dy)) count++;
+                }
+            }
+            return count;
+        }
+
+        function calculateDensity(x, y, radius = 2) {
+            let count = 0;
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    if (getCell(x + dx, y + dy)) count++;
+                }
+            }
+            return count;
+        }
+
+        function evaluateRules(isAlive, neighborCount, cellKey, cellX, cellY) {
+            const ruleSet = isAlive ? rules.live : rules.dead;
+
+            for (const rule of ruleSet) {
+                let conditionMet = false;
+                let valueToCheck = 0;
+
+                // Get the value to check based on rule type
+                switch (rule.ruleType) {
+                    case 'neighbor_count':
+                        valueToCheck = neighborCount;
+                        break;
+                    case 'cycles_unchanged':
+                        valueToCheck = cellUnchangedCycles.get(cellKey) || 0;
+                        break;
+                    case 'age':
+                        valueToCheck = cellAges.get(cellKey) || 0;
+                        break;
+                    case 'density':
+                        valueToCheck = calculateDensity(cellX, cellY, 2);
+                        break;
+                }
+
+                // Check condition
+                switch (rule.condition) {
+                    case 'fewer':
+                        conditionMet = valueToCheck < rule.count;
+                        break;
+                    case 'equal':
+                        conditionMet = valueToCheck === rule.count;
+                        break;
+                    case 'more':
+                        conditionMet = valueToCheck > rule.count;
+                        break;
+                }
+
+                if (conditionMet) {
+                    // For live cells, rules make them die (result is always 'dead')
+                    // For dead cells, rules make them live (result is always 'live')
+                    return !isAlive;
+                }
+            }
+
+            // Default: stay in current state if no rule matches
+            return isAlive;
+        }
+
+        function step() {
+            const newCells = new Map();
+            const newCellAges = new Map();
+            const newCellUnchangedCycles = new Map();
+            const cellsToCheck = new Set();
+
+            // Get all cells and their neighbors
+            for (const key of cells.keys()) {
+                const [x, y] = key.split(',').map(Number);
+                cellsToCheck.add(key);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        cellsToCheck.add(`${x + dx},${y + dy}`);
+                    }
+                }
+            }
+
+            // Apply rules to each cell
+            for (const key of cellsToCheck) {
+                const [x, y] = key.split(',').map(Number);
+                const isAlive = getCell(x, y);
+                const neighbors = countNeighbors(x, y);
+                const shouldBeAlive = evaluateRules(isAlive, neighbors, key, x, y);
+
+                if (shouldBeAlive) {
+                    newCells.set(key, true);
+                    // Update age (increment if was alive, start at 0 if newly born)
+                    if (cells.has(key)) {
+                        newCellAges.set(key, (cellAges.get(key) || 0) + 1);
+                    } else {
+                        newCellAges.set(key, 0);
+                    }
+                }
+            }
+
+            // Track unchanged cycles (compare current state with next state)
+            // A cell is "unchanged" if it will remain in the same state
+            for (const key of cellsToCheck) {
+                const isAliveNow = cells.has(key);
+                const willBeAliveNext = newCells.has(key);
+
+                if (isAliveNow === willBeAliveNext) {
+                    // State will remain unchanged, increment counter
+                    newCellUnchangedCycles.set(key, (cellUnchangedCycles.get(key) || 0) + 1);
+                } else {
+                    // State will change, reset counter
+                    newCellUnchangedCycles.set(key, 0);
+                }
+            }
+
+            // Track changes and add animations
+            const oldCells = new Set(cells.keys());
+            const allCells = new Set([...oldCells, ...newCells.keys()]);
+
+            for (const key of allCells) {
+                const wasAlive = oldCells.has(key);
+                const willBeAlive = newCells.has(key);
+
+                if (wasAlive !== willBeAlive) {
+                    if (willBeAlive) {
+                        cellAnimations.set(key, { type: 'spawn', frame: 0 });
+                    } else {
+                        cellAnimations.set(key, { type: 'death', frame: 0 });
+                    }
+                }
+            }
+
+            // Update cells map and tracking
+            previousCells = new Map(cells);
+            cells = newCells;
+            cellAges = newCellAges;
+            cellUnchangedCycles = newCellUnchangedCycles;
+            playTickSound();
+        }
+
+        function worldToScreen(x, y) {
+            const screenX = (x * cellSize * zoom) + cameraX + canvas.width / 2;
+            const screenY = (y * cellSize * zoom) + cameraY + canvas.height / 2;
+            return { x: screenX, y: screenY };
+        }
+
+        function screenToWorld(screenX, screenY) {
+            const x = Math.floor((screenX - cameraX - canvas.width / 2) / (cellSize * zoom));
+            const y = Math.floor((screenY - cameraY - canvas.height / 2) / (cellSize * zoom));
+            return { x, y };
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid lines (forming squares, cells centered in squares)
+            ctx.strokeStyle = '#2a2a2a';
+            ctx.lineWidth = 0.5;
+
+            const gridSpacing = cellSize * zoom;
+            // Find where world origin (0,0) cell center is on screen
+            const originX = cameraX + canvas.width / 2;
+            const originY = cameraY + canvas.height / 2;
+
+            // Grid lines should form squares, so they're at cell boundaries
+            // Cell at (x,y) is centered at originX + x * gridSpacing
+            // Grid lines should be at originX + (x - 0.5) * gridSpacing and originX + (x + 0.5) * gridSpacing
+            // So first grid line is at originX - 0.5 * gridSpacing
+            const firstGridX = originX - 0.5 * gridSpacing - Math.ceil((originX - 0.5 * gridSpacing) / gridSpacing) * gridSpacing;
+            const firstGridY = originY - 0.5 * gridSpacing - Math.ceil((originY - 0.5 * gridSpacing) / gridSpacing) * gridSpacing;
+
+            for (let x = firstGridX; x < canvas.width; x += gridSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = firstGridY; y < canvas.height; y += gridSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw cells
+            const cellPixelSize = cellSize * zoom;
+            const minX = screenToWorld(-cellPixelSize, 0).x - 1;
+            const maxX = screenToWorld(canvas.width + cellPixelSize, 0).x + 1;
+            const minY = screenToWorld(0, -cellPixelSize).y - 1;
+            const maxY = screenToWorld(0, canvas.height + cellPixelSize).y + 1;
+
+            // Collect all cells to draw (alive cells + dying cells with animations)
+            const cellsToDraw = new Set(cells.keys());
+            for (const key of cellAnimations.keys()) {
+                const anim = cellAnimations.get(key);
+                if (anim && anim.type === 'death') {
+                    cellsToDraw.add(key);
+                }
+            }
+
+            for (const key of cellsToDraw) {
+                const [x, y] = key.split(',').map(Number);
+                if (x < minX || x > maxX || y < minY || y > maxY) continue;
+
+                const isAlive = cells.has(key);
+                const anim = cellAnimations.get(key);
+                let alpha = 1;
+                let scale = 1;
+
+                if (anim) {
+                    const progress = anim.frame / ANIMATION_DURATION;
+                    if (anim.type === 'spawn') {
+                        scale = progress;
+                        alpha = progress;
+                    } else if (anim.type === 'death') {
+                        scale = 1 - progress;
+                        alpha = 1 - progress;
+                    }
+                    anim.frame++;
+                    if (anim.frame >= ANIMATION_DURATION) {
+                        cellAnimations.delete(key);
+                    }
+                }
+
+                const pos = worldToScreen(x, y);
+                ctx.fillStyle = `rgba(74, 158, 255, ${alpha})`;
+                ctx.fillRect(
+                    pos.x - (cellPixelSize * scale) / 2,
+                    pos.y - (cellPixelSize * scale) / 2,
+                    cellPixelSize * scale,
+                    cellPixelSize * scale
+                );
+            }
+
+            // Draw minimap
+            drawMinimap();
+        }
+
+        // Store minimap transformation data for click handling
+        let minimapTransform = { minX: 0, minY: 0, scale: 1, offsetX: 0, offsetY: 0 };
+
+        function drawMinimap() {
+            minimapCtx.fillStyle = '#0a0a0a';
+            minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            if (cells.size === 0) {
+                minimapTransform = { minX: 0, minY: 0, scale: 1, offsetX: 0, offsetY: 0 };
+                return;
+            }
+
+            // Find bounds
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const key of cells.keys()) {
+                const [x, y] = key.split(',').map(Number);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            }
+
+            // Add padding (5 blocks)
+            const padding = 5;
+            minX -= padding;
+            maxX += padding;
+            minY -= padding;
+            maxY += padding;
+
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const scale = Math.min(minimapCanvas.width / rangeX, minimapCanvas.height / rangeY) * 0.9;
+            const offsetX = (minimapCanvas.width - rangeX * scale) / 2;
+            const offsetY = (minimapCanvas.height - rangeY * scale) / 2;
+
+            // Store transform for click handling (without padding for accurate clicks)
+            minimapTransform = { minX: minX + padding, minY: minY + padding, scale, offsetX, offsetY };
+
+            // Draw cells
+            minimapCtx.fillStyle = '#4a9eff';
+            for (const key of cells.keys()) {
+                const [x, y] = key.split(',').map(Number);
+                const px = (x - minX) * scale + offsetX;
+                const py = (y - minY) * scale + offsetY;
+                minimapCtx.fillRect(px, py, Math.max(1, scale), Math.max(1, scale));
+            }
+
+            // Draw viewport rectangle
+            const worldCenterX = -cameraX / (cellSize * zoom);
+            const worldCenterY = -cameraY / (cellSize * zoom);
+            const viewWidth = canvas.width / (cellSize * zoom);
+            const viewHeight = canvas.height / (cellSize * zoom);
+
+            const viewX = (worldCenterX - viewWidth / 2 - minX) * scale + offsetX;
+            const viewY = (worldCenterY - viewHeight / 2 - minY) * scale + offsetY;
+            const viewW = viewWidth * scale;
+            const viewH = viewHeight * scale;
+
+            minimapCtx.strokeStyle = '#ff4444';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(viewX, viewY, viewW, viewH);
+        }
+
+        function gameLoop(timestamp) {
+            if (isPlaying && timestamp - lastUpdate > 1000 / speed) {
+                step();
+                lastUpdate = timestamp;
+            }
+
+            draw();
+            animationFrame++;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX - cameraX;
+            dragStartY = e.clientY - cameraY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                cameraX = e.clientX - dragStartX;
+                cameraY = e.clientY - dragStartY;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (isDragging) return;
+            const { x, y } = screenToWorld(e.clientX, e.clientY);
+            setCell(x, y, !getCell(x, y));
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            zoom *= delta;
+            zoom = Math.max(0.25, Math.min(8, zoom));
+            // Update display and save
+            const zoomPercent = Math.round(zoom * 100);
+            document.getElementById('zoomValue').textContent = zoomPercent + '%';
+            localStorage.setItem('gameOfLifeZoom', zoom.toString());
+        });
+
+        // Minimap click to pan
+        minimapCanvas.addEventListener('click', (e) => {
+            const rect = minimapCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if (cells.size === 0) return;
+
+            // Convert minimap coordinates to world coordinates
+            const worldX = (clickX - minimapTransform.offsetX) / minimapTransform.scale + minimapTransform.minX;
+            const worldY = (clickY - minimapTransform.offsetY) / minimapTransform.scale + minimapTransform.minY;
+
+            // Pan camera to center on clicked location
+            cameraX = -(worldX * cellSize * zoom);
+            cameraY = -(worldY * cellSize * zoom);
+        });
+
+        // Controls
+        document.getElementById('playPause').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            document.getElementById('playPause').textContent = isPlaying ? '⏸' : '▶';
+            document.getElementById('playPause').classList.toggle('active', isPlaying);
+        });
+
+        document.getElementById('step').addEventListener('click', () => {
+            step();
+        });
+
+        document.getElementById('clear').addEventListener('click', () => {
+            cells.clear();
+            cellAnimations.clear();
+            cellAges.clear();
+            cellUnchangedCycles.clear();
+            previousCells.clear();
+            showToast('Board cleared');
+        });
+
+        function adjustSpeed(increase) {
+            if (increase) {
+                speed *= 2;
+            } else {
+                speed /= 2;
+            }
+            // Clamp to min/max
+            speed = Math.max(0.25, Math.min(1024, speed));
+            // Round to avoid floating point issues, but keep precision for exact values
+            speed = Math.round(speed * 100) / 100;
+            document.getElementById('speedValue').textContent = speed.toFixed(2).replace(/\.?0+$/, '') + 'x';
+            localStorage.setItem('gameOfLifeSpeed', speed.toString());
+        }
+
+        function adjustZoom(increase) {
+            const targetZoom = increase ? zoom * 2 : zoom / 2;
+            const clampedZoom = Math.max(0.25, Math.min(8.0, targetZoom));
+
+            // Animate zoom
+            const startZoom = zoom;
+            const duration = 200; // ms
+            const startTime = performance.now();
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease out animation
+                const eased = 1 - Math.pow(1 - progress, 3);
+                zoom = startZoom + (clampedZoom - startZoom) * eased;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    zoom = clampedZoom;
+                    localStorage.setItem('gameOfLifeZoom', zoom.toString());
+                }
+
+                const zoomPercent = Math.round(zoom * 100);
+                document.getElementById('zoomValue').textContent = zoomPercent + '%';
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        let toastTimeout = null;
+        function showToast(message, highlightWords = null) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'toast';
+                toast.innerHTML = '<span class="corner-bl"></span><span class="corner-br"></span>';
+                document.body.appendChild(toast);
+            }
+
+            // Clear existing timeout if any
+            if (toastTimeout) {
+                clearTimeout(toastTimeout);
+            }
+
+            // Remove existing toast text
+            const existingText = toast.querySelector('.toast-content');
+            if (existingText) {
+                existingText.remove();
+            }
+
+            // Create toast content with highlight
+            const toastContent = document.createElement('div');
+            toastContent.className = 'toast-content';
+
+            const messageUpper = message.toUpperCase();
+            if (highlightWords) {
+                // Convert single word to array for backward compatibility
+                const words = Array.isArray(highlightWords) ? highlightWords : [highlightWords];
+                const wordsUpper = words.map(w => w.toUpperCase());
+
+                // Find all occurrences of highlight words and their positions
+                const matches = [];
+                wordsUpper.forEach(word => {
+                    let index = messageUpper.indexOf(word);
+                    while (index !== -1) {
+                        matches.push({ word, index, endIndex: index + word.length });
+                        index = messageUpper.indexOf(word, index + 1);
+                    }
+                });
+
+                // Sort matches by position
+                matches.sort((a, b) => a.index - b.index);
+
+                // Remove overlapping matches (keep first occurrence)
+                const nonOverlapping = [];
+                for (let i = 0; i < matches.length; i++) {
+                    const match = matches[i];
+                    const overlaps = nonOverlapping.some(m =>
+                        (match.index >= m.index && match.index < m.endIndex) ||
+                        (match.endIndex > m.index && match.endIndex <= m.endIndex) ||
+                        (match.index < m.index && match.endIndex > m.endIndex)
+                    );
+                    if (!overlaps) {
+                        nonOverlapping.push(match);
+                    }
+                }
+
+                // Build HTML
+                let html = '';
+                let currentPos = 0;
+                nonOverlapping.forEach(match => {
+                    // Add text before highlight
+                    if (match.index > currentPos) {
+                        html += `<span class="toast-text">${messageUpper.substring(currentPos, match.index)}</span>`;
+                    }
+                    // Add highlighted word
+                    html += `<span class="toast-highlight">${match.word}</span>`;
+                    currentPos = match.endIndex;
+                });
+
+                // Add remaining text
+                if (currentPos < messageUpper.length) {
+                    html += `<span class="toast-text">${messageUpper.substring(currentPos)}</span>`;
+                }
+
+                // If no matches found, show plain text
+                if (html === '') {
+                    html = `<span class="toast-text">${messageUpper}</span>`;
+                }
+
+                toastContent.innerHTML = html;
+            } else {
+                toastContent.innerHTML = `<span class="toast-text">${messageUpper}</span>`;
+            }
+
+            toast.appendChild(toastContent);
+            toast.classList.add('show');
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+                toastTimeout = null;
+            }, 2000);
+        }
+
+        // Board state save/load
+        document.getElementById('saveBoard').addEventListener('click', () => {
+            const boardState = {
+                cells: Array.from(cells.keys()),
+                timestamp: Date.now()
+            };
+            localStorage.setItem('gameOfLifeBoardState', JSON.stringify(boardState));
+            showToast('Board state saved!');
+        });
+
+        document.getElementById('loadBoard').addEventListener('click', () => {
+            const boardStateJson = localStorage.getItem('gameOfLifeBoardState');
+            if (!boardStateJson) {
+                showToast('No saved board state found!');
+                return;
+            }
+            const boardState = JSON.parse(boardStateJson);
+            cells.clear();
+            cellAnimations.clear();
+            cellAges.clear();
+            cellUnchangedCycles.clear();
+            previousCells.clear();
+
+            for (const key of boardState.cells) {
+                cells.set(key, true);
+            }
+            previousCells = new Map(cells);
+            showToast('Board state loaded!');
+        });
+
+        // Rules UI
+        function renderRules() {
+            renderRuleCategory('live', document.getElementById('liveRules'));
+            renderRuleCategory('dead', document.getElementById('deadRules'));
+        }
+
+        function renderRuleCategory(type, container) {
+            container.innerHTML = '';
+            const ruleSet = rules[type];
+            const resultText = type === 'live' ? 'die' : 'live';
+
+            ruleSet.forEach((rule, index) => {
+                const ruleDiv = document.createElement('div');
+                ruleDiv.className = 'rule-item';
+
+                let maxValue = 8;
+                switch (rule.ruleType) {
+                    case 'neighbor_count':
+                        maxValue = 8;
+                        break;
+                    case 'cycles_unchanged':
+                        maxValue = 100;
+                        break;
+                    case 'age':
+                        maxValue = 100;
+                        break;
+                    case 'density':
+                        maxValue = 25;
+                        break;
+                }
+
+                ruleDiv.innerHTML = `
+                    <select onchange="updateRule('${type}', ${index}, 'ruleType', this.value); renderRules();">
+                        <option value="neighbor_count" ${rule.ruleType === 'neighbor_count' ? 'selected' : ''}>neighbors</option>
+                        <option value="cycles_unchanged" ${rule.ruleType === 'cycles_unchanged' ? 'selected' : ''}>cycles unchanged</option>
+                        <option value="age" ${rule.ruleType === 'age' ? 'selected' : ''}>age</option>
+                        <option value="density" ${rule.ruleType === 'density' ? 'selected' : ''}>density</option>
+                    </select>
+                    <select onchange="updateRule('${type}', ${index}, 'condition', this.value)">
+                        <option value="fewer" ${rule.condition === 'fewer' ? 'selected' : ''}>&lt;</option>
+                        <option value="equal" ${rule.condition === 'equal' ? 'selected' : ''}>=</option>
+                        <option value="more" ${rule.condition === 'more' ? 'selected' : ''}>&gt;</option>
+                    </select>
+                    <input type="number" value="${rule.count || 0}" min="0" max="${maxValue}" 
+                           onchange="let val = parseInt(this.value) || 0; if (val < 0 || val > ${maxValue}) val = 0; this.value = val; updateRule('${type}', ${index}, 'count', val);"
+                           oninput="let val = parseInt(this.value) || 0; if (val < 0 || val > ${maxValue}) val = 0; this.value = val;"
+                           onblur="if (!this.value || this.value === '') { this.value = 0; updateRule('${type}', ${index}, 'count', 0); }">
+                    <span>then ${resultText}</span>
+                    <button class="remove-rule" onclick="removeRule('${type}', ${index})">×</button>
+                `;
+
+                // Ensure value is set
+                const numberInput = ruleDiv.querySelector('input[type="number"]');
+                if (numberInput) {
+                    const val = rule.count || 0;
+                    numberInput.value = val;
+                }
+
+                container.appendChild(ruleDiv);
+            });
+        }
+
+        window.addRule = function (type) {
+            rules[type].push({
+                ruleType: 'neighbor_count',
+                condition: 'equal',
+                count: 3
+            });
+            renderRules();
+            showToast(`Rule added to ${type === 'live' ? 'Live Cells' : 'Dead Cells'}`, ['added', type === 'live' ? 'Live Cells' : 'Dead Cells']);
+        };
+
+        window.removeRule = function (type, index) {
+            rules[type].splice(index, 1);
+            renderRules();
+            showToast(`Rule removed from ${type === 'live' ? 'Live Cells' : 'Dead Cells'}`, ['removed', type === 'live' ? 'Live Cells' : 'Dead Cells']);
+        };
+
+        window.updateRule = function (type, index, field, value) {
+            rules[type][index][field] = value;
+        };
+
+        // Preset management
+        function getPresets() {
+            const presetsJson = localStorage.getItem('gameOfLifePresets');
+            return presetsJson ? JSON.parse(presetsJson) : {};
+        }
+
+        function savePresets(presets) {
+            localStorage.setItem('gameOfLifePresets', JSON.stringify(presets));
+        }
+
+        window.savePreset = function (name) {
+            if (!name || !name.trim()) {
+                return;
+            }
+            name = name.trim();
+            const presets = getPresets();
+            const isNew = !presets[name];
+            presets[name] = {
+                live: JSON.parse(JSON.stringify(rules.live)),
+                dead: JSON.parse(JSON.stringify(rules.dead))
+            };
+            savePresets(presets);
+            renderPresets();
+            if (isNew) {
+                showToast('Preset added', 'added');
+            }
+        };
+
+        window.overwritePreset = function (name) {
+            const presets = getPresets();
+            presets[name] = {
+                live: JSON.parse(JSON.stringify(rules.live)),
+                dead: JSON.parse(JSON.stringify(rules.dead))
+            };
+            savePresets(presets);
+            renderPresets();
+            showToast('Preset saved', 'saved');
+        };
+
+        window.addNewPreset = function () {
+            const presets = getPresets();
+            const presetNames = Object.keys(presets);
+            if (presetNames.length >= 5) {
+                showToast('Maximum of 5 presets allowed. Delete one first.');
+                return;
+            }
+
+            const presetList = document.getElementById('presetList');
+            const tempItem = document.createElement('div');
+            tempItem.className = 'preset-item';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Preset name';
+            input.style.cssText = 'flex: 1; min-width: 120px;';
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const name = input.value.trim();
+                    if (name) {
+                        savePreset(name);
+                        renderPresets();
+                    }
+                }
+            });
+            input.addEventListener('blur', () => {
+                const name = input.value.trim();
+                if (name) {
+                    savePreset(name);
+                }
+                renderPresets();
+            });
+            tempItem.appendChild(input);
+            presetList.insertBefore(tempItem, presetList.firstChild);
+            input.focus();
+        };
+
+
+        window.loadPreset = function (name) {
+            const presets = getPresets();
+            if (presets[name]) {
+                rules.live = JSON.parse(JSON.stringify(presets[name].live));
+                rules.dead = JSON.parse(JSON.stringify(presets[name].dead));
+                renderRules();
+                showToast('Preset loaded', 'loaded');
+            }
+        };
+
+        window.deletePreset = function (name) {
+            const presets = getPresets();
+            delete presets[name];
+            savePresets(presets);
+            renderPresets();
+            showToast(`Preset "${name}" deleted`, 'deleted');
+        };
+
+        function renderPresets() {
+            const presetList = document.getElementById('presetList');
+            const presets = getPresets();
+            const names = Object.keys(presets).sort();
+
+            if (names.length === 0) {
+                presetList.innerHTML = '<div style="font-size: 11px; color: #666; font-style: italic;">No presets saved</div>';
+                return;
+            }
+
+            presetList.innerHTML = names.map(name => `
+                <div class="preset-item">
+                    <span style="cursor: pointer; flex: 1;" onclick="loadPreset('${name}')">${name}</span>
+                    <div class="preset-item-buttons">
+                        <button onclick="loadPreset('${name}')">Load</button>
+                        <button onclick="overwritePreset('${name}')" style="background: #4a9eff;">Save</button>
+                        <button class="delete-preset" onclick="deletePreset('${name}')" title="Delete">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize with some pattern
+        function initPattern() {
+            // Glider
+            setCell(0, 0, true);
+            setCell(1, 0, true);
+            setCell(2, 0, true);
+            setCell(2, 1, true);
+            setCell(1, 2, true);
+            // Initialize previousCells to current state
+            previousCells = new Map(cells);
+        }
+
+        // Initialize
+        renderRules();
+        renderPresets();
+
+        // Load speed and zoom from localStorage
+        const savedSpeed = localStorage.getItem('gameOfLifeSpeed');
+        if (savedSpeed) {
+            speed = parseFloat(savedSpeed);
+            speed = Math.max(0.25, Math.min(1024, speed));
+        }
+        const savedZoom = localStorage.getItem('gameOfLifeZoom');
+        if (savedZoom) {
+            zoom = parseFloat(savedZoom);
+            zoom = Math.max(0.25, Math.min(8, zoom));
+        }
+
+        // Initialize speed and zoom displays from saved values
+        document.getElementById('speedValue').textContent = speed.toFixed(2).replace(/\.?0+$/, '') + 'x';
+        document.getElementById('zoomValue').textContent = Math.round(zoom * 100) + '%';
+
+        initPattern();
+        gameLoop(0);
+    </script>
+</body>
+
+</html>
