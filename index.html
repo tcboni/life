@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game of Life</title>
+    <title>LIFE</title>
     <style>
         * {
             margin: 0;
@@ -22,11 +22,7 @@
             display: block;
             width: 100vw;
             height: 100vh;
-            cursor: grab;
-        }
-
-        #canvas:active {
-            cursor: grabbing;
+            cursor: default;
         }
 
         .controls {
@@ -97,11 +93,6 @@
             flex-wrap: wrap;
         }
 
-        .button-group {
-            display: flex;
-            gap: 8px;
-        }
-
         button {
             padding: 8px 16px;
             background: #333;
@@ -111,6 +102,10 @@
             cursor: pointer;
             font-size: 12px;
             transition: all 0.2s;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         button:hover {
@@ -123,19 +118,55 @@
             border-color: #6bb0ff;
         }
 
+        button svg {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            vertical-align: middle;
+            fill: currentColor;
+        }
+
         .slider-group {
             display: flex;
             flex-direction: column;
-            align-items: center;
             gap: 4px;
         }
 
-        .slider-group label {
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .section-label {
             font-size: 10px;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            white-space: nowrap;
+        }
+
+        .button-group-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .button-group button {
+            height: 32px;
+        }
+
+        .preset-empty-message {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preset-item-name {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .preset-save-button {
+            background: #4a9eff;
         }
 
         .slider-group input[type="range"] {
@@ -149,6 +180,8 @@
             border: 1px solid #444;
             border-radius: 4px;
             padding: 2px;
+            height: 32px;
+            box-sizing: border-box;
         }
 
         .number-control button {
@@ -161,8 +194,9 @@
             font-size: 14px;
             font-weight: bold;
             min-width: 28px;
-            height: 24px;
+            height: 100%;
             position: relative;
+            box-sizing: border-box;
         }
 
         .number-control button:hover {
@@ -170,24 +204,17 @@
         }
 
         .tooltip {
-            position: absolute;
-            bottom: calc(100% + 5px);
-            left: 50%;
-            transform: translateX(-50%);
+            position: fixed;
             padding: 4px 8px;
+            border: 1px solid #444;
             background: rgba(0, 0, 0, 0.9);
             color: #fff;
             font-size: 11px;
             white-space: nowrap;
             border-radius: 3px;
             pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
             z-index: 10000;
-        }
-
-        .number-control button:hover .tooltip {
-            opacity: 1;
+            text-transform: uppercase;
         }
 
         .toast {
@@ -398,15 +425,10 @@
         }
 
         .rules-category {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .rules-category h4 {
-            font-size: 12px;
-            margin-bottom: 10px;
-            color: #4a9eff;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -416,6 +438,7 @@
         #deadRules {
             max-height: 200px;
             overflow-y: auto;
+            overflow-x: visible;
         }
 
         .rule-item {
@@ -424,6 +447,8 @@
             gap: 8px;
             padding: 6px 0;
             font-size: 12px;
+            position: relative;
+            overflow: visible;
         }
 
         select,
@@ -478,10 +503,18 @@
             line-height: 1;
             width: auto;
             height: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .add-rule-icon:hover {
             color: #6bb0ff;
+        }
+
+        .add-rule-icon svg {
+            width: 18px;
+            height: 18px;
         }
 
         .remove-rule {
@@ -496,17 +529,25 @@
             line-height: 1;
             width: auto;
             height: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .remove-rule:hover {
             color: #f55;
         }
 
+        .remove-rule svg {
+            width: 18px;
+            height: 18px;
+        }
+
 
         .presets-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #444;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #222;
         }
 
         .presets-section h4 {
@@ -572,10 +613,18 @@
             line-height: 1;
             width: auto;
             height: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .preset-item .delete-preset:hover {
             color: #f55;
+        }
+
+        .preset-item .delete-preset svg {
+            width: 18px;
+            height: 18px;
         }
     </style>
 </head>
@@ -589,37 +638,57 @@
         <h3>Controls</h3>
         <div class="controls-row">
             <div class="button-group">
-                <button id="playPause" title="Play/Pause">▶</button>
-                <button id="step" title="Step">⏭</button>
-            </div>
-            <div class="slider-group">
-                <label>Speed</label>
-                <div class="number-control">
-                    <button onclick="adjustSpeed(false)">
-                        <span class="tooltip">Halve speed</span>-
+                <label class="section-label">State</label>
+                <div class="button-group-buttons">
+                    <button id="playPause" data-tooltip="Play/Pause (Spacebar)">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
                     </button>
-                    <span class="number-display" id="speedValue">1x</span>
-                    <button onclick="adjustSpeed(true)">
-                        <span class="tooltip">Double speed</span>+
+                    <button id="step" data-tooltip="Play 1 step (Shift+Spacebar)">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 4l8 8-8 8V4zm10 0v16h2V4h-2z" />
+                        </svg>
                     </button>
                 </div>
             </div>
             <div class="slider-group">
-                <label>Zoom</label>
+                <label class="section-label">Speed</label>
                 <div class="number-control">
-                    <button onclick="adjustZoom(false)">
-                        <span class="tooltip">Halve zoom</span>-
-                    </button>
+                    <button onclick="adjustSpeed(false)" data-tooltip="Slow down">-</button>
+                    <span class="number-display" id="speedValue">1x</span>
+                    <button onclick="adjustSpeed(true)" data-tooltip="Speed up">+</button>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label class="section-label">Zoom</label>
+                <div class="number-control">
+                    <button onclick="adjustZoom(false)" data-tooltip="Zoom out">-</button>
                     <span class="number-display" id="zoomValue">100%</span>
-                    <button onclick="adjustZoom(true)">
-                        <span class="tooltip">Double zoom</span>+
-                    </button>
+                    <button onclick="adjustZoom(true)" data-tooltip="Zoom in">+</button>
                 </div>
             </div>
             <div class="button-group">
-                <button id="clear">🗑</button>
-                <button id="saveBoard">💾</button>
-                <button id="loadBoard">📂</button>
+                <label class="section-label">Board</label>
+                <div class="button-group-buttons">
+                    <button id="clear" data-tooltip="Clear board">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                    </button>
+                    <button id="saveBoard" data-tooltip="Save board">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
+                        </svg>
+                    </button>
+                    <button id="loadBoard" data-tooltip="Load board">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.11-.9-2-2-2h-8l-2-2z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -638,29 +707,148 @@
         <span class="corner-br"></span>
         <h3>Rules</h3>
         <div class="rules-category">
-            <h4>
+            <h4 class="section-label">
                 Live Cells
-                <button class="add-rule-icon" onclick="addRule('live')" title="Add rule">+</button>
+                <button class="add-rule-icon" onclick="addRule('live')" data-tooltip="ADD RULE">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                </button>
             </h4>
             <div id="liveRules"></div>
         </div>
         <div class="rules-category">
-            <h4>
+            <h4 class="section-label">
                 Dead Cells
-                <button class="add-rule-icon" onclick="addRule('dead')" title="Add rule">+</button>
+                <button class="add-rule-icon" onclick="addRule('dead')" data-tooltip="ADD RULE">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                </button>
             </h4>
             <div id="deadRules"></div>
         </div>
         <div class="presets-section">
             <h4>
                 Presets
-                <button class="add-rule-icon" onclick="addNewPreset()">+</button>
+                <button class="add-rule-icon" onclick="addNewPreset()" data-tooltip="ADD PRESET">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                </button>
             </h4>
             <div class="preset-list" id="presetList"></div>
         </div>
     </div>
 
     <script>
+        // Tooltip system
+        let tooltipElement = null;
+        let currentTooltipTarget = null;
+
+        function showTooltip(element, text) {
+            if (tooltipElement) {
+                tooltipElement.remove();
+            }
+
+            tooltipElement = document.createElement('div');
+            tooltipElement.className = 'tooltip';
+            tooltipElement.textContent = text;
+            document.body.appendChild(tooltipElement);
+
+            currentTooltipTarget = element;
+            updateTooltipPosition();
+        }
+
+        function hideTooltip() {
+            if (tooltipElement) {
+                tooltipElement.remove();
+                tooltipElement = null;
+            }
+            currentTooltipTarget = null;
+        }
+
+        function updateTooltipPosition() {
+            if (!tooltipElement || !currentTooltipTarget) return;
+
+            const rect = currentTooltipTarget.getBoundingClientRect();
+            const tooltipRect = tooltipElement.getBoundingClientRect();
+            const padding = 8; // Padding from viewport edges
+
+            // Calculate centered position
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 5;
+
+            // Check if tooltip goes off the left edge
+            if (left < padding) {
+                left = padding;
+            }
+
+            // Check if tooltip goes off the right edge
+            if (left + tooltipRect.width > window.innerWidth - padding) {
+                left = window.innerWidth - tooltipRect.width - padding;
+            }
+
+            // Check if tooltip goes off the top edge
+            if (top < padding) {
+                // Position below the element instead
+                top = rect.bottom + 5;
+            }
+
+            // Check if tooltip goes off the bottom edge (when positioned below)
+            if (top + tooltipRect.height > window.innerHeight - padding) {
+                // Position above, but adjust if needed
+                top = Math.max(padding, rect.top - tooltipRect.height - 5);
+            }
+
+            tooltipElement.style.left = left + 'px';
+            tooltipElement.style.top = top + 'px';
+        }
+
+        function initTooltips() {
+            // Handle existing elements
+            document.querySelectorAll('[data-tooltip]').forEach(element => {
+                const text = element.getAttribute('data-tooltip');
+                element.addEventListener('mouseenter', () => showTooltip(element, text));
+                element.addEventListener('mouseleave', hideTooltip);
+                element.addEventListener('mousemove', updateTooltipPosition);
+            });
+        }
+
+        // MutationObserver to handle dynamically added elements
+        const tooltipObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.hasAttribute && node.hasAttribute('data-tooltip')) {
+                            const text = node.getAttribute('data-tooltip');
+                            node.addEventListener('mouseenter', () => showTooltip(node, text));
+                            node.addEventListener('mouseleave', hideTooltip);
+                            node.addEventListener('mousemove', updateTooltipPosition);
+                        }
+                        // Also check children
+                        if (node.querySelectorAll) {
+                            node.querySelectorAll('[data-tooltip]').forEach(element => {
+                                const text = element.getAttribute('data-tooltip');
+                                element.addEventListener('mouseenter', () => showTooltip(element, text));
+                                element.addEventListener('mouseleave', hideTooltip);
+                                element.addEventListener('mousemove', updateTooltipPosition);
+                            });
+                        }
+                    }
+                });
+            });
+        });
+
+        tooltipObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Update tooltip position on scroll/resize
+        window.addEventListener('scroll', updateTooltipPosition, true);
+        window.addEventListener('resize', updateTooltipPosition);
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimapCanvas');
@@ -690,6 +878,14 @@
         let dragStartY = 0;
         let animationFrame = 0;
         let lastUpdate = 0;
+        let isPainting = false;
+        let paintMode = null; // 'paint' or 'delete'
+        let lastPaintedCell = null; // Track last cell to avoid duplicates during drag
+        let isMinimapDragging = false;
+        let minimapDragStartX = 0;
+        let minimapDragStartY = 0;
+        let activeMouseButton = null; // Track which mouse button is currently active
+        let autoSaveTimeout = null; // For debouncing auto-save
 
         // Rules: { ruleType: 'neighbor_count'|'cycles_unchanged'|'age'|'density', condition: 'fewer'|'equal'|'more', count: number }
         // Note: result is implicit - live cell rules make them die, dead cell rules make them live
@@ -741,6 +937,14 @@
                 }
                 cells.delete(key);
             }
+
+            // Auto-save board state (debounced)
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            autoSaveTimeout = setTimeout(() => {
+                saveBoardState();
+            }, 2000); // Save 2 seconds after last change
         }
 
         function getCell(x, y) {
@@ -898,8 +1102,13 @@
         }
 
         function screenToWorld(screenX, screenY) {
-            const x = Math.floor((screenX - cameraX - canvas.width / 2) / (cellSize * zoom));
-            const y = Math.floor((screenY - cameraY - canvas.height / 2) / (cellSize * zoom));
+            // Convert screen coordinates to world coordinates
+            // Cells are centered at integer world coordinates
+            const worldX = (screenX - cameraX - canvas.width / 2) / (cellSize * zoom);
+            const worldY = (screenY - cameraY - canvas.height / 2) / (cellSize * zoom);
+            // Use floor to get the cell that contains this point
+            const x = Math.floor(worldX + 0.5);
+            const y = Math.floor(worldY + 0.5);
             return { x, y };
         }
 
@@ -1026,8 +1235,8 @@
             const offsetX = (minimapCanvas.width - rangeX * scale) / 2;
             const offsetY = (minimapCanvas.height - rangeY * scale) / 2;
 
-            // Store transform for click handling (without padding for accurate clicks)
-            minimapTransform = { minX: minX + padding, minY: minY + padding, scale, offsetX, offsetY };
+            // Store transform for click handling (use padded minX/minY to match drawing coordinates)
+            minimapTransform = { minX: minX, minY: minY, scale, offsetX, offsetY };
 
             // Draw cells
             minimapCtx.fillStyle = '#4a9eff';
@@ -1067,30 +1276,105 @@
 
         // Mouse events
         canvas.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            dragStartX = e.clientX - cameraX;
-            dragStartY = e.clientY - cameraY;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Middle mouse button (button 1) - panning
+            if (e.button === 1) {
+                activeMouseButton = 1;
+                isDragging = true;
+                isPainting = false;
+                paintMode = null;
+                dragStartX = e.clientX - cameraX;
+                dragStartY = e.clientY - cameraY;
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+
+            // Left mouse button (button 0) - paint if dead cell, delete if live cell
+            if (e.button === 0) {
+                activeMouseButton = 0;
+                isDragging = false;
+                const { x, y } = screenToWorld(mouseX, mouseY);
+                const cellKey = `${x},${y}`;
+                const isAlive = getCell(x, y);
+
+                isPainting = true;
+                paintMode = isAlive ? 'delete' : 'paint';
+                lastPaintedCell = cellKey;
+
+                setCell(x, y, paintMode === 'paint');
+                return;
+            }
+
+            // Right mouse button (button 2) - always delete
+            if (e.button === 2) {
+                activeMouseButton = 2;
+                isDragging = false;
+                const { x, y } = screenToWorld(mouseX, mouseY);
+                const cellKey = `${x},${y}`;
+
+                isPainting = true;
+                paintMode = 'delete';
+                lastPaintedCell = cellKey;
+
+                setCell(x, y, false);
+            }
         });
 
         canvas.addEventListener('mousemove', (e) => {
-            if (isDragging) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // If painting (left or right mouse button), only paint/delete - never pan
+            if (isPainting && paintMode !== null && (activeMouseButton === 0 || activeMouseButton === 2)) {
+                const { x, y } = screenToWorld(mouseX, mouseY);
+                const cellKey = `${x},${y}`;
+
+                // Only set cell if it's different from the last one (avoid redundant sets)
+                if (cellKey !== lastPaintedCell) {
+                    lastPaintedCell = cellKey;
+                    setCell(x, y, paintMode === 'paint');
+                }
+                return; // Exit early - never pan when painting
+            }
+
+            // Only pan if dragging with middle mouse button (button 1)
+            if (isDragging && activeMouseButton === 1) {
                 cameraX = e.clientX - dragStartX;
                 cameraY = e.clientY - dragStartY;
             }
         });
 
-        canvas.addEventListener('mouseup', () => {
-            isDragging = false;
+        canvas.addEventListener('mouseup', (e) => {
+            // Only stop dragging/painting if the button that started it is released
+            if (e.button === 1 && activeMouseButton === 1) {
+                isDragging = false;
+                activeMouseButton = null;
+                canvas.style.cursor = 'default';
+            } else if ((e.button === 0 && activeMouseButton === 0) || (e.button === 2 && activeMouseButton === 2)) {
+                isPainting = false;
+                paintMode = null;
+                lastPaintedCell = null;
+                activeMouseButton = null;
+            }
         });
 
         canvas.addEventListener('mouseleave', () => {
             isDragging = false;
+            isPainting = false;
+            paintMode = null;
+            lastPaintedCell = null;
+            activeMouseButton = null;
+            canvas.style.cursor = 'default';
         });
 
-        canvas.addEventListener('click', (e) => {
-            if (isDragging) return;
-            const { x, y } = screenToWorld(e.clientX, e.clientY);
-            setCell(x, y, !getCell(x, y));
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
 
         canvas.addEventListener('wheel', (e) => {
@@ -1101,35 +1385,88 @@
             // Update display and save
             const zoomPercent = Math.round(zoom * 100);
             document.getElementById('zoomValue').textContent = zoomPercent + '%';
-            localStorage.setItem('gameOfLifeZoom', zoom.toString());
+            localStorage.setItem('gameZoom', zoom.toString());
         });
 
-        // Minimap click to pan
-        minimapCanvas.addEventListener('click', (e) => {
+        // Minimap click and drag to pan
+        minimapCanvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
             const rect = minimapCanvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
             if (cells.size === 0) return;
 
-            // Convert minimap coordinates to world coordinates
+            isMinimapDragging = true;
+            minimapDragStartX = clickX;
+            minimapDragStartY = clickY;
+
+            // Convert minimap click coordinates to world coordinates
             const worldX = (clickX - minimapTransform.offsetX) / minimapTransform.scale + minimapTransform.minX;
             const worldY = (clickY - minimapTransform.offsetY) / minimapTransform.scale + minimapTransform.minY;
 
-            // Pan camera to center on clicked location
+            // Pan camera so that the clicked world position is at the center of the screen
+            // This centers the viewport rectangle on the mouse cursor
             cameraX = -(worldX * cellSize * zoom);
             cameraY = -(worldY * cellSize * zoom);
         });
 
-        // Controls
-        document.getElementById('playPause').addEventListener('click', () => {
-            isPlaying = !isPlaying;
-            document.getElementById('playPause').textContent = isPlaying ? '⏸' : '▶';
-            document.getElementById('playPause').classList.toggle('active', isPlaying);
+        minimapCanvas.addEventListener('mousemove', (e) => {
+            if (!isMinimapDragging || cells.size === 0) return;
+
+            const rect = minimapCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Convert minimap coordinates to world coordinates
+            const worldX = (mouseX - minimapTransform.offsetX) / minimapTransform.scale + minimapTransform.minX;
+            const worldY = (mouseY - minimapTransform.offsetY) / minimapTransform.scale + minimapTransform.minY;
+
+            // Pan camera so that the mouse world position is at the center of the screen
+            // This keeps the viewport rectangle centered on the mouse cursor
+            cameraX = -(worldX * cellSize * zoom);
+            cameraY = -(worldY * cellSize * zoom);
         });
+
+        minimapCanvas.addEventListener('mouseup', () => {
+            isMinimapDragging = false;
+        });
+
+        minimapCanvas.addEventListener('mouseleave', () => {
+            isMinimapDragging = false;
+        });
+
+        // Play/pause toggle function
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const playPauseBtn = document.getElementById('playPause');
+            if (isPlaying) {
+                playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>';
+            } else {
+                playPauseBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            }
+            playPauseBtn.classList.toggle('active', isPlaying);
+        }
+
+        // Controls
+        document.getElementById('playPause').addEventListener('click', togglePlayPause);
 
         document.getElementById('step').addEventListener('click', () => {
             step();
+        });
+
+        // Spacebar to play/pause, Shift/Ctrl/Alt+Spacebar to step
+        document.addEventListener('keydown', (e) => {
+            // Only trigger if not typing in an input field
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                // Check for modifier keys (Shift, Ctrl, or Alt)
+                if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) {
+                    step();
+                } else {
+                    togglePlayPause();
+                }
+            }
         });
 
         document.getElementById('clear').addEventListener('click', () => {
@@ -1152,7 +1489,7 @@
             // Round to avoid floating point issues, but keep precision for exact values
             speed = Math.round(speed * 100) / 100;
             document.getElementById('speedValue').textContent = speed.toFixed(2).replace(/\.?0+$/, '') + 'x';
-            localStorage.setItem('gameOfLifeSpeed', speed.toString());
+            localStorage.setItem('gameSpeed', speed.toString());
         }
 
         function adjustZoom(increase) {
@@ -1175,7 +1512,7 @@
                     requestAnimationFrame(animate);
                 } else {
                     zoom = clampedZoom;
-                    localStorage.setItem('gameOfLifeZoom', zoom.toString());
+                    localStorage.setItem('gameZoom', zoom.toString());
                 }
 
                 const zoomPercent = Math.round(zoom * 100);
@@ -1281,34 +1618,51 @@
         }
 
         // Board state save/load
-        document.getElementById('saveBoard').addEventListener('click', () => {
+        function saveBoardState() {
             const boardState = {
                 cells: Array.from(cells.keys()),
                 timestamp: Date.now()
             };
-            localStorage.setItem('gameOfLifeBoardState', JSON.stringify(boardState));
+            localStorage.setItem('gameBoardState', JSON.stringify(boardState));
+        }
+
+        function loadBoardState() {
+            const boardStateJson = localStorage.getItem('gameBoardState');
+            if (!boardStateJson) {
+                return false;
+            }
+            try {
+                const boardState = JSON.parse(boardStateJson);
+                cells.clear();
+                cellAnimations.clear();
+                cellAges.clear();
+                cellUnchangedCycles.clear();
+                previousCells.clear();
+
+                for (const key of boardState.cells) {
+                    cells.set(key, true);
+                }
+                previousCells = new Map(cells);
+                return true;
+            } catch (e) {
+                console.error('Error loading board state:', e);
+                return false;
+            }
+        }
+
+        document.getElementById('saveBoard').addEventListener('click', () => {
+            saveBoardState();
             showToast('Board state saved!');
         });
 
         document.getElementById('loadBoard').addEventListener('click', () => {
-            const boardStateJson = localStorage.getItem('gameOfLifeBoardState');
-            if (!boardStateJson) {
+            if (loadBoardState()) {
+                showToast('Board state loaded!');
+            } else {
                 showToast('No saved board state found!');
-                return;
             }
-            const boardState = JSON.parse(boardStateJson);
-            cells.clear();
-            cellAnimations.clear();
-            cellAges.clear();
-            cellUnchangedCycles.clear();
-            previousCells.clear();
-
-            for (const key of boardState.cells) {
-                cells.set(key, true);
-            }
-            previousCells = new Map(cells);
-            showToast('Board state loaded!');
         });
+
 
         // Rules UI
         function renderRules() {
@@ -1358,7 +1712,11 @@
                            oninput="let val = parseInt(this.value) || 0; if (val < 0 || val > ${maxValue}) val = 0; this.value = val;"
                            onblur="if (!this.value || this.value === '') { this.value = 0; updateRule('${type}', ${index}, 'count', 0); }">
                     <span>then ${resultText}</span>
-                    <button class="remove-rule" onclick="removeRule('${type}', ${index})">×</button>
+                    <button class="remove-rule" onclick="removeRule('${type}', ${index})" data-tooltip="REMOVE RULE">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
                 `;
 
                 // Ensure value is set
@@ -1394,12 +1752,12 @@
 
         // Preset management
         function getPresets() {
-            const presetsJson = localStorage.getItem('gameOfLifePresets');
+            const presetsJson = localStorage.getItem('gamePresets');
             return presetsJson ? JSON.parse(presetsJson) : {};
         }
 
         function savePresets(presets) {
-            localStorage.setItem('gameOfLifePresets', JSON.stringify(presets));
+            localStorage.setItem('gamePresets', JSON.stringify(presets));
         }
 
         window.savePreset = function (name) {
@@ -1483,7 +1841,7 @@
             delete presets[name];
             savePresets(presets);
             renderPresets();
-            showToast(`Preset "${name}" deleted`, 'deleted');
+            showToast(`Preset "${name}" deleted`, [name, 'deleted']);
         };
 
         function renderPresets() {
@@ -1492,17 +1850,21 @@
             const names = Object.keys(presets).sort();
 
             if (names.length === 0) {
-                presetList.innerHTML = '<div style="font-size: 11px; color: #666; font-style: italic;">No presets saved</div>';
+                presetList.innerHTML = '<div class="preset-empty-message">No presets saved</div>';
                 return;
             }
 
             presetList.innerHTML = names.map(name => `
                 <div class="preset-item">
-                    <span style="cursor: pointer; flex: 1;" onclick="loadPreset('${name}')">${name}</span>
+                    <span class="preset-item-name" onclick="loadPreset('${name}')">${name}</span>
                     <div class="preset-item-buttons">
                         <button onclick="loadPreset('${name}')">Load</button>
-                        <button onclick="overwritePreset('${name}')" style="background: #4a9eff;">Save</button>
-                        <button class="delete-preset" onclick="deletePreset('${name}')" title="Delete">×</button>
+                        <button class="preset-save-button" onclick="overwritePreset('${name}')">Save</button>
+                        <button class="delete-preset" onclick="deletePreset('${name}')" data-tooltip="DELETE PRESET">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -1525,12 +1887,12 @@
         renderPresets();
 
         // Load speed and zoom from localStorage
-        const savedSpeed = localStorage.getItem('gameOfLifeSpeed');
+        const savedSpeed = localStorage.getItem('gameSpeed');
         if (savedSpeed) {
             speed = parseFloat(savedSpeed);
             speed = Math.max(0.25, Math.min(1024, speed));
         }
-        const savedZoom = localStorage.getItem('gameOfLifeZoom');
+        const savedZoom = localStorage.getItem('gameZoom');
         if (savedZoom) {
             zoom = parseFloat(savedZoom);
             zoom = Math.max(0.25, Math.min(8, zoom));
@@ -1540,7 +1902,15 @@
         document.getElementById('speedValue').textContent = speed.toFixed(2).replace(/\.?0+$/, '') + 'x';
         document.getElementById('zoomValue').textContent = Math.round(zoom * 100) + '%';
 
-        initPattern();
+        // Load board state from localStorage on startup
+        if (!loadBoardState()) {
+            // Only initialize pattern if no saved state was found
+            initPattern();
+        }
+
+        // Initialize tooltips
+        initTooltips();
+
         gameLoop(0);
     </script>
 </body>
