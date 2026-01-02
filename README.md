@@ -1,4 +1,4 @@
-# <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32" style="vertical-align: middle; margin-right: 8px;"><rect width="64" height="64" fill="#1a1a1a"/><defs><pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="#2a2a2a" stroke-width="0.5"/></pattern></defs><rect width="64" height="64" fill="url(#grid)"/><g fill="#4a9eff"><rect x="20" y="20" width="6" height="6" rx="1"/><rect x="28" y="20" width="6" height="6" rx="1"/><rect x="36" y="20" width="6" height="6" rx="1"/><rect x="36" y="28" width="6" height="6" rx="1"/><rect x="28" y="36" width="6" height="6" rx="1"/></g></svg> LIFE
+# LIFE
 
 An interactive, customizable implementation of Conway's Game of Life with advanced features.
 
