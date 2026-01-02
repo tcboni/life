@@ -2,6 +2,8 @@
 
 An interactive, customizable implementation of Conway's Game of Life with advanced features.
 
+**[→ Open LIFE](https://tcboni.github.io/life/)**
+
 ## Features
 
 - **Customizable Rules**: Create custom cellular automata rules beyond the classic Conway's Game of Life
